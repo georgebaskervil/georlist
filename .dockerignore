@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+
+# Node.js
+node_modules
+npm-debug.log
+
+# Bun
+.bun
+
+# Build artifacts
+adguard-blocklist.txt
+*.log
+
+# Development files
+README.md
+.vscode
+.idea
+*.md
+.editorconfig
+.prettierrc
+.eslintrc*
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment
+.env*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db 
