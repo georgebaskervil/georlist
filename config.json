@@ -317,11 +317,5 @@
       "source": "https://raw.githubusercontent.com/georgebaskervil/Personal-DNS-Filterlists/refs/heads/main/lists-under-CC-BY-NC-SA-4.0/cookieconsent_blocklist.txt",
       "transformations": ["Compress", "ValidateAllowIp"]
     }
-  ],
-  "transformations": [
-    "Deduplicate",
-    "RemoveEmptyLines",
-    "TrimLines",
-    "InsertFinalNewLine"
   ]
 } 
