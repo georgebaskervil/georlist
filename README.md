@@ -1,157 +1,118 @@
-# AdGuard Home Blocklist Compiler
+# GeorList - AdGuard Hostlist Compiler
 
-A Bun.js application that compiles a comprehensive blocklist for AdGuard Home from multiple sources, serves it over the web, and updates it daily.
+GeorList is a Node.js application that compiles custom blocklists for AdGuard Home from multiple sources.
 
 ## Features
 
-- Uses AdGuard's official hostlist-compiler for optimal list generation
-- Compiles blocklists from multiple sources into a single AdGuard Home compatible list
-- Preserves IP addresses with ValidateAllowIp transformation
-- Deduplicates and optimizes the blocklist
-- Serves the blocklist over HTTP with proper caching headers
-- Automatically updates the list daily via cron scheduling
-- Provides statistics and health check endpoints
-- Simple and efficient
-- Docker support for easy deployment
+- Compiles blocklists from multiple sources defined in a configuration file
+- Automatically updates blocklists on a configurable schedule
+- Serves blocklists via HTTP for use with AdGuard Home
+- Implements security best practices including rate limiting and TLS validation
+- Supports Docker deployment
 
 ## Requirements
 
-- [Bun.js](https://bun.sh) (v1.0.0 or higher)
-- Or Docker for containerized deployment
+- Node.js 18.0 or higher
+- npm or yarn package manager
 
 ## Installation
 
-### Standard Installation
+### Local Installation
 
-1. Clone this repository:
-   ```bash
+1. Clone the repository:
+   ```
    git clone https://github.com/yourusername/georlist.git
    cd georlist
    ```
 
 2. Install dependencies:
-   ```bash
-   bun install
+   ```
+   npm install
+   ```
+
+3. Configure your sources in `config.json` (see Configuration section below)
+
+4. Start the application:
+   ```
+   npm start
    ```
 
 ### Docker Installation
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/yourusername/georlist.git
-   cd georlist
+1. Build the Docker image:
+   ```
+   docker build -t georlist .
    ```
 
-2. Build and start with Docker Compose:
-   ```bash
-   docker-compose up -d
+2. Run the container:
    ```
-
-## Usage
-
-### Standard Usage
-
-#### Start the Complete Application (Server + Scheduler)
-
-```bash
-bun run start
-```
-
-This will:
-1. Compile the blocklist if it doesn't exist or is outdated
-2. Start a web server to serve the blocklist
-3. Setup a scheduler to update the blocklist daily
-
-#### Compile Blocklist Only
-
-```bash
-bun run compile
-```
-
-#### Start Web Server Only
-
-```bash
-bun run server
-```
-
-#### Start Scheduler Only
-
-```bash
-bun run cron
-```
-
-### Docker Usage
-
-#### Start the Container
-
-```bash
-docker-compose up -d
-```
-
-#### View Logs
-
-```bash
-docker-compose logs -f
-```
-
-#### Rebuild and Restart
-
-```bash
-docker-compose up -d --build
-```
-
-## Integration with AdGuard Home
-
-In your AdGuard Home settings:
-
-1. Go to "Filters"
-2. Click "Add blocklist"
-3. Enter the URL to your server: `http://your-server-ip:3000/blocklist.txt`
-4. Click "Save"
-
-## Web Server Endpoints
-
-- `GET /` or `/blocklist.txt` - Serves the compiled blocklist file
-- `GET /health` - Health check endpoint
-- `GET /stats` - Provides statistics about the blocklist
-- `POST /refresh` - Triggers a manual refresh of the blocklist
+   docker run -p 3000:3000 -v $(pwd)/config.json:/app/config.json georlist
+   ```
 
 ## Configuration
 
-### Environment Variables
+The application is configured using a `config.json` file in the root directory. The file should follow this structure:
 
-- `PORT` - Port for the web server (default: 3000)
-- `HOST` - Host for the web server (default: localhost)
-- `CRON_SCHEDULE` - Cron schedule for updates (default: "0 0 * * *" - midnight)
+```json
+{
+  "name": "GeorList",
+  "description": "A comprehensive blocklist for AdGuard Home compiled from multiple sources",
+  "homepage": "https://github.com/yourusername/georlist",
+  "version": "1.0.0",
+  "updateInterval": 86400,
+  "sources": [
+    {
+      "name": "Example Filter List",
+      "type": "adblock",
+      "source": "https://example.com/filterlist.txt",
+      "transformations": [
+        "Compress",
+        "ValidateAllowIp"
+      ]
+    }
+  ],
+  "transformations": [
+    "Deduplicate",
+    "RemoveEmptyLines",
+    "TrimLines",
+    "InsertFinalNewLine"
+  ]
+}
+```
 
-### Config File (config.json)
+## Usage
 
-The `config.json` file contains the configuration for the AdGuard hostlist compiler:
+Once running, the application will:
 
-- `sources`: Array of filter list sources with transformations
-- `transformations`: Global transformations applied to the final list
-- `updateInterval`: Update interval in seconds (default: 86400 - 1 day)
+1. Compile the blocklists from the sources specified in `config.json`
+2. Start a web server to serve the compiled blocklist
+3. Set up a cron job to automatically update the blocklist based on the schedule
 
-## How It Works
+The compiled blocklist will be available at:
+```
+http://localhost:3000/blocklist.txt
+```
 
-The application:
+You can configure AdGuard Home to use this URL as a blocklist source.
 
-1. Uses AdGuard's hostlist-compiler to process filter lists
-2. Applies specific transformations to each source
-3. Preserves IP addresses while optimizing the list
-4. Serves the compiled list via HTTP with proper caching headers
-5. Updates the list on a daily schedule
-6. Provides statistics and health checks
+## Development
 
-## Transformations Used
+### Scripts
 
-- `Compress` - Converts hosts-style rules to AdGuard syntax
-- `ValidateAllowIp` - Validates rules while preserving IP addresses
-- `Deduplicate` - Removes duplicate rules
-- `RemoveEmptyLines` - Cleans up empty lines
-- `TrimLines` - Removes whitespace from lines
-- `InsertFinalNewLine` - Ensures the file ends with a newline
+- `npm start` - Start the application
+- `npm run dev` - Start the application in development mode with auto-reload
+- `npm run server` - Start only the web server
+- `npm run compile` - Run only the blocklist compilation
+- `npm run cron` - Run only the scheduler
+- `npm run build` - Build the TypeScript files
 
 ## License
 
-MIT 
+[MIT](LICENSE)
+
+## Security
+
+- Only HTTPS sources are allowed in the configuration
+- All file paths are validated to prevent path traversal
+- Rate limiting is implemented to prevent abuse
+- Security headers are set on all responses 

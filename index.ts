@@ -1,9 +1,9 @@
 import { join } from "path";
 import fs from "fs";
 import path from "path";
-import { startScheduler } from "./cron";
-import startServer from "./server";
-import { compileBlocklist } from "./compile";
+import { startScheduler } from "./cron.js";
+import startServer from "./server.js";
+import { compileBlocklist } from "./compile.js";
 
 // Configuration
 const PORT = Number(process.env.PORT) || 3000;
@@ -139,7 +139,7 @@ async function main() {
 }
 
 // Run the application
-if (import.meta.main) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {
     console.error("Application failed:", error);
     process.exit(1);

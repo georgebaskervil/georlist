@@ -1,13 +1,17 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "types": ["bun-types"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "outDir": "./dist",
+    "sourceMap": true
   },
-  "include": ["*.ts"]
+  "include": ["*.ts", "*.d.ts"],
+  "ts-node": {
+    "esm": true
+  }
 } 

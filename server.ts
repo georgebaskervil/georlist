@@ -1,10 +1,12 @@
 import { join } from "path";
 import fs from "fs";
-import { compileBlocklist } from "./compile";
+import { compileBlocklist } from "./compile.js";
 import { fileURLToPath } from "url";
+import http from "http";
+import { IncomingMessage, ServerResponse } from "http";
 
 // Configuration
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "localhost";
 const FILE_PATH = join(process.cwd(), "adguard-blocklist.txt");
 
@@ -66,103 +68,115 @@ async function startServer() {
   }
   
   // Create server
-  const server = Bun.serve({
-    port: PORT,
-    hostname: HOST,
-    async fetch(req) {
-      try {
-        const clientIp = req.headers.get("x-forwarded-for") || "unknown";
-        
-        // Apply rate limiting
-        if (isRateLimited(clientIp)) {
-          return new Response("Too Many Requests", { 
-            status: 429,
-            headers: {
-              "Content-Type": "text/plain; charset=utf-8",
-              "Retry-After": "60",
-            }
-          });
-        }
-        
-        const url = new URL(req.url);
-        
-        // Security check: Only allow GET requests
-        if (req.method !== "GET") {
-          return new Response("Method Not Allowed", { status: 405 });
-        }
-        
-        // Serve the blocklist at the root path or /blocklist.txt
-        if (url.pathname === "/" || url.pathname === "/blocklist.txt") {
-          // Validate the file path is correct
-          if (!isValidPath("adguard-blocklist.txt")) {
-            return new Response("Internal Server Error", { status: 500 });
-          }
-          
-          // Security check: Ensure file exists
-          if (!fs.existsSync(FILE_PATH)) {
-            return new Response("Blocklist not found", { status: 404 });
-          }
-          
-          // Get the last modification time of the file
-          const stats = fs.statSync(FILE_PATH);
-          const lastModified = stats.mtime.toUTCString();
-          
-          // If-Modified-Since header check
-          const ifModifiedSince = req.headers.get("If-Modified-Since");
-          if (ifModifiedSince && new Date(ifModifiedSince) >= stats.mtime) {
-            return new Response(null, { status: 304 }); // Not Modified
-          }
-          
-          // Serve the file with appropriate security headers
-          const fileContent = fs.readFileSync(FILE_PATH, "utf-8");
-          return new Response(fileContent, {
-            headers: {
-              "Content-Type": "text/plain; charset=utf-8",
-              "Last-Modified": lastModified,
-              "Cache-Control": "public, max-age=3600",
-              "Content-Length": String(Buffer.byteLength(fileContent, "utf-8")),
-              "X-Content-Type-Options": "nosniff",
-              "X-Frame-Options": "DENY",
-              "Content-Security-Policy": "default-src 'none'",
-              "Referrer-Policy": "no-referrer",
-              "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload"
-            },
-          });
-        }
-        
-        // Secured health check endpoint (only accessible from localhost or Docker network)
-        if (url.pathname === "/health") {
-          // Allow access only from localhost or internal Docker network
-          const host = req.headers.get("host") || "";
-          if (host.includes("localhost") || host.includes("127.0.0.1") || clientIp.startsWith("172.") || clientIp.startsWith("192.168.")) {
-            return new Response(JSON.stringify({ status: "ok" }), {
-              headers: { 
-                "Content-Type": "application/json",
-                "X-Content-Type-Options": "nosniff"
-              },
-            });
-          } else {
-            // Pretend the endpoint doesn't exist for external users
-            return new Response("Not Found", { status: 404 });
-          }
-        }
-        
-        // Not found for any other routes
-        return new Response("Not Found", { status: 404 });
-      } catch (error) {
-        // Log the error but don't expose details to the client
-        console.error("Server error:", error);
-        return new Response("Internal Server Error", { status: 500 });
+  const server = http.createServer(async (req: IncomingMessage, res: ServerResponse) => {
+    try {
+      const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || "unknown";
+      
+      // Apply rate limiting
+      if (isRateLimited(clientIp)) {
+        res.statusCode = 429;
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        res.setHeader("Retry-After", "60");
+        res.end("Too Many Requests");
+        return;
       }
-    },
+      
+      const url = new URL(req.url || "/", `http://${req.headers.host}`);
+      
+      // Security check: Only allow GET requests
+      if (req.method !== "GET") {
+        res.statusCode = 405;
+        res.end("Method Not Allowed");
+        return;
+      }
+      
+      // Serve the blocklist at the root path or /blocklist.txt
+      if (url.pathname === "/" || url.pathname === "/blocklist.txt") {
+        // Validate the file path is correct
+        if (!isValidPath("adguard-blocklist.txt")) {
+          res.statusCode = 500;
+          res.end("Internal Server Error");
+          return;
+        }
+        
+        // Security check: Ensure file exists
+        if (!fs.existsSync(FILE_PATH)) {
+          res.statusCode = 404;
+          res.end("Blocklist not found");
+          return;
+        }
+        
+        // Get the last modification time of the file
+        const stats = fs.statSync(FILE_PATH);
+        const lastModified = stats.mtime.toUTCString();
+        
+        // If-Modified-Since header check
+        const ifModifiedSince = req.headers["if-modified-since"];
+        if (ifModifiedSince && new Date(ifModifiedSince) >= stats.mtime) {
+          res.statusCode = 304; // Not Modified
+          res.end();
+          return;
+        }
+        
+        // Serve the file with appropriate security headers
+        const fileContent = fs.readFileSync(FILE_PATH, "utf-8");
+        
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        res.setHeader("Last-Modified", lastModified);
+        res.setHeader("Cache-Control", "public, max-age=3600");
+        res.setHeader("Content-Length", Buffer.byteLength(fileContent, "utf-8"));
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader("X-Frame-Options", "DENY");
+        res.setHeader("Content-Security-Policy", "default-src 'none'");
+        res.setHeader("Referrer-Policy", "no-referrer");
+        res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+        res.end(fileContent);
+        return;
+      }
+      
+      // Secured health check endpoint (only accessible from localhost or Docker network)
+      if (url.pathname === "/health") {
+        // Allow access only from localhost or internal Docker network
+        const host = req.headers.host || "";
+        if (host.includes("localhost") || host.includes("127.0.0.1") || 
+            (clientIp && (clientIp.startsWith("172.") || clientIp.startsWith("192.168.")))) {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.setHeader("X-Content-Type-Options", "nosniff");
+          res.end(JSON.stringify({ status: "ok" }));
+          return;
+        } else {
+          // Pretend the endpoint doesn't exist for external users
+          res.statusCode = 404;
+          res.end("Not Found");
+          return;
+        }
+      }
+      
+      // Not found for any other routes
+      res.statusCode = 404;
+      res.end("Not Found");
+    } catch (error) {
+      // Log the error but don't expose details to the client
+      console.error("Server error:", error);
+      res.statusCode = 500;
+      res.end("Internal Server Error");
+    }
   });
   
-  console.log(`Server started at http://${server.hostname}:${server.port}`);
-  console.log(`Blocklist available at http://${server.hostname}:${server.port}/blocklist.txt`);
+  // Start listening
+  server.listen(PORT, HOST, () => {
+    console.log(`Server started at http://${HOST}:${PORT}`);
+    console.log(`Blocklist available at http://${HOST}:${PORT}/blocklist.txt`);
+  });
+  
+  // Return the server instance
+  return server;
 }
 
 // Start the server if this file is executed directly
-if (import.meta.main) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   startServer().catch((error) => {
     console.error("Failed to start server:", error);
     process.exit(1);

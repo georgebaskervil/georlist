@@ -1,62 +1,50 @@
-FROM oven/bun:1.2.5 AS builder
+# Use Node.js Alpine as the base image
+FROM node:20-alpine AS base
 
+# Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+# Build stage
+FROM base AS builder
 
-# Copy application files
-COPY *.ts *.json ./
+# Copy package files
+COPY package.json package-lock.json* ./
 
-FROM oven/bun:1.2.5-slim
+# Install dependencies
+RUN npm ci
 
-WORKDIR /app
+# Copy source code
+COPY . .
 
-# Install security updates
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Build the application
+RUN npm run build
 
-# Copy production dependencies and package files from builder
-COPY --from=builder /app/package.json /app/bun.lock ./
-RUN bun install --frozen-lockfile --production
+# Production stage
+FROM base AS runtime
 
-# Copy application source files from builder
-COPY --from=builder /app/*.ts /app/*.json ./
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOST=0.0.0.0
 
-# Create volume with explicit permissions
-RUN mkdir -p /app/data && chmod 750 /app/data
-VOLUME /app/data
+# Copy production dependencies and build files
+COPY --from=builder /app/package.json /app/package-lock.json* ./
+RUN npm ci --omit=dev
 
-# Create and use non-root user
-RUN adduser --disabled-password --gecos "" --home /app appuser && \
-    chown -R appuser:appuser /app
+# Copy built application
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/config.json ./
 
-# Set proper file permissions
-RUN find /app -type d -exec chmod 750 {} \; && \
-    find /app -type f -exec chmod 640 {} \; && \
-    find /app -type f -name "*.js" -exec chmod 750 {} \;
+# Create a non-root user and set permissions
+RUN addgroup -g 1001 nodejs && \
+    adduser -S -u 1001 -G nodejs appuser && \
+    chown -R appuser:nodejs /app
 
+# Switch to non-root user
 USER appuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD bun --version || exit 1
-
-# Set file and directory permission umask
-RUN echo "umask 027" >> ~/.profile
-
-# Expose the web server port (documentation only)
+# Expose the port the app runs on
 EXPOSE 3000
 
-# Set environment variables at runtime using --env
-ENV PORT=3000 \
-    HOST=127.0.0.1 \
-    CRON_SCHEDULE="0 0 * * *" \
-    NODE_ENV=production \
-    FORCE_COLOR=0
-
-# Run the application
-CMD ["bun", "run", "start"] 
+# Start the application
+CMD ["node", "dist/index.js"] 

@@ -5,6 +5,8 @@ import compile, { IConfiguration, Transformation } from "@adguard/hostlist-compi
 import path from "path";
 import crypto from "crypto";
 import Ajv from "ajv";
+import fetch, { Response } from "node-fetch";
+import { AbortController } from "abort-controller";
 
 /**
  * Path to the configuration file
@@ -72,6 +74,7 @@ interface ConfigSchema {
     source: string;
     transformations: string[];
   }[];
+  transformations?: string[];
 }
 
 /**
@@ -248,130 +251,95 @@ function deepInspectForChalkIssues(obj: unknown, path = ''): { hasIssue: boolean
  * Convert our config schema to the AdGuard compiler expected format
  */
 function convertToCompilerConfig(config: ConfigSchema): IConfiguration {
-  return {
-    ...config,
+  // Create a clean configuration object with only the allowed properties
+  const compilerConfig: IConfiguration = {
+    name: config.name,
+    description: config.description,
     sources: config.sources.map(source => ({
-      ...source,
+      name: source.name,
+      type: source.type,
+      source: source.source,
       // Convert string[] to Transformation[] as required by the compiler
       transformations: source.transformations.map(t => t as unknown as Transformation)
     }))
   };
+  
+  // Add optional properties only if they exist in the AdGuard schema
+  if (config.homepage) compilerConfig.homepage = config.homepage;
+  if (config.license) compilerConfig.license = config.license;
+  if (config.version) compilerConfig.version = config.version;
+  
+  // Add the transformations if present
+  if (Array.isArray(config.transformations)) {
+    compilerConfig.transformations = config.transformations.map(t => t as unknown as Transformation);
+  }
+  
+  return compilerConfig;
 }
 
 /**
- * Compile the blocklist using AdGuard's hostlist compiler
+ * Compile blocklist from sources
  */
 export async function compileBlocklist(): Promise<string> {
   try {
-    console.log("Starting blocklist compilation with AdGuard hostlist compiler...");
-    
-    // Read configuration
+    console.log("Starting blocklist compilation...");
+
+    // Validate input config exists
     if (!fs.existsSync(CONFIG_PATH)) {
-      throw new Error(`Configuration file not found: ${CONFIG_PATH}`);
+      throw new Error(`Config file not found at ${CONFIG_PATH}`);
     }
-    
-    // Securely read and parse the config file
-    const configContent = fs.readFileSync(securePath(CONFIG_PATH), "utf-8");
-    let config: unknown;
-    
-    try {
-      config = JSON.parse(configContent);
-    } catch (error) {
-      throw new Error(`Invalid JSON in configuration file: ${error}`);
-    }
-    
-    // Extra inspection for potential issues with curly braces in strings
-    const inspectionResult = deepInspectForChalkIssues(config);
-    if (inspectionResult.hasIssue) {
-      console.error("Found potential string formatting issues that may cause chalk errors:");
-      for (const issue of inspectionResult.issues) {
-        console.error(`- ${issue}`);
-      }
-      console.error("Please fix these issues in config.json before proceeding.");
-      throw new Error("Configuration contains strings that may cause formatting issues in chalk");
-    }
-    
-    // Validate config against JSON Schema using Ajv
-    const ajv = new Ajv();
-    const validate = ajv.compile(configJsonSchema);
-    if (!validate(config)) {
-      console.error("Configuration validation failed:");
-      console.error(JSON.stringify(validate.errors, null, 2)); // Log detailed Ajv errors
-      throw new Error("Configuration file failed validation. Check logs for details.");
-    }
-    
-    // Validate using our type guard to ensure the config matches our ConfigSchema
+
+    // Read and parse the configuration file
+    const configContents = fs.readFileSync(CONFIG_PATH, 'utf-8');
+    const config = JSON.parse(configContents);
+
+    // Validate configuration
     if (!validateConfig(config)) {
-      throw new Error("Configuration failed type validation");
+      throw new Error("Invalid configuration format");
     }
-    
-    // Now TypeScript knows 'config' matches the ConfigSchema type
-    const validatedConfig: ConfigSchema = config;
-    
-    // Convert to the format expected by AdGuard hostlist compiler
-    const compilerConfig = convertToCompilerConfig(validatedConfig);
-    
-    // Start timestamp for measuring compilation time
+
+    // Convert to compiler compatible configuration
+    const compilerConfig = convertToCompilerConfig(config);
+
+    // Run compilation
+    console.log(`Compiling blocklist from ${config.sources.length} sources...`);
     const startTime = Date.now();
-    
-    // Set a global timeout for the entire compilation process
-    const compilationPromise = new Promise<string[]>(async (resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("Compilation timed out after 10 minutes"));
-      }, 10 * 60 * 1000); // 10 minutes
-      
-      try {
-        // Compile the blocklist - PASSING THE VALIDATED CONFIG
-        console.log(`Compiling blocklist from ${validatedConfig.sources.length} sources...`);
-        const compiledList = await compile(compilerConfig);
-        clearTimeout(timeoutId);
-        resolve(compiledList);
-      } catch (error) {
-        clearTimeout(timeoutId);
-        reject(error);
-      }
-    });
-    
-    // Wait for compilation to complete
-    const compiledList = await compilationPromise;
-    
-    // Add custom header - USE validatedConfig
+    const compiledRules = await compile(compilerConfig);
+    const elapsed = Date.now() - startTime;
+
+    // Format the output with a header
     const timestamp = new Date();
     const header = [
-      "! Title: Combined AdGuard Home Blocklist",
-      `! Last updated: ${format(timestamp, "yyyy-MM-dd HH:mm:ss")}`,
-      `! Version: ${validatedConfig.version || "1.0.0"}`, // Use validatedConfig
-      `! Total number of sources: ${validatedConfig.sources.length}`, // Use validatedConfig
-      `! Total number of rules: ${compiledList.length}`,
-      "! Description: A comprehensive blocklist for AdGuard Home compiled from multiple sources",
-      `! Homepage: ${validatedConfig.homepage || "https://github.com/yourusername/georlist"}`, // Use validatedConfig
-      `! License: ${validatedConfig.license || "MIT"}`, // Use validatedConfig
-      "!"
-    ].join("\n");
-    
-    // Combine header and compiled list
-    const finalList = header + "\n" + compiledList.join("\n");
-    
-    // Write to file
-    secureWriteFile(OUTPUT_PATH, finalList);
-    
-    // Calculate compilation time
-    const compilationTime = (Date.now() - startTime) / 1000;
-    
-    console.log(`Blocklist compilation complete in ${compilationTime.toFixed(2)} seconds.`);
-    console.log(`Output saved to: ${OUTPUT_PATH}`);
-    console.log(`Total rules: ${compiledList.length}`);
-    
-    return OUTPUT_PATH;
+      `! Title: ${config.name}`,
+      `! Last updated: ${timestamp.toISOString()}`,
+      `! Description: ${config.description}`,
+      config.homepage ? `! Homepage: ${config.homepage}` : '',
+      config.license ? `! License: ${config.license}` : '',
+      config.version ? `! Version: ${config.version}` : '',
+      '! Source count: ' + config.sources.length,
+      '! Rule count: ' + compiledRules.length,
+      '! Compilation time: ' + elapsed + 'ms',
+      '!'
+    ].filter(Boolean).join('\n');
+
+    // Join the header and rules
+    const outputContent = `${header}\n${compiledRules.join('\n')}`;
+
+    // Write the output to file
+    secureWriteFile(OUTPUT_PATH, outputContent);
+    console.log(`Blocklist compiled successfully with ${compiledRules.length} rules`);
+    console.log(`Output written to ${OUTPUT_PATH}`);
+
+    return outputContent;
   } catch (error) {
-    console.error("Error compiling blocklist:", error);
-    throw error; // Re-throw error after logging
+    console.error("Failed to compile blocklist:", error);
+    throw error;
   }
 }
 
-// Run the compilation if this script is executed directly
-if (import.meta.main) {
-  compileBlocklist().catch((error) => {
+// Execute if run directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  compileBlocklist().catch(error => {
     console.error("Compilation failed:", error);
     process.exit(1);
   });

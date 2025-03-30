@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { compileBlocklist } from "./compile";
+import { compileBlocklist } from "./compile.js";
 import { join } from "path";
 import fs from "fs";
 import { format } from "date-fns";
@@ -180,7 +180,7 @@ export function startScheduler(cronExpression = "0 0 * * *") {
 }
 
 // Execute scheduler if run directly
-if (import.meta.main) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   // Default to midnight (0 0 * * *), or use custom schedule if provided
   const schedule = process.env.CRON_SCHEDULE || "0 0 * * *";
   
@@ -200,19 +200,8 @@ if (import.meta.main) {
       process.exit(0);
     });
     
-    // Handle uncaught exceptions
-    process.on("uncaughtException", (error) => {
-      log(`Uncaught exception: ${error}`);
-      
-      // Stop the scheduler on critical errors
-      job.stop();
-      
-      // Exit with error code
-      process.exit(1);
-    });
-    
-    log(`Scheduler running with schedule: ${schedule}`);
-    log("Press Ctrl+C to stop");
+    // Log when the scheduled job runs
+    log(`Scheduler started with schedule: ${schedule}`);
   } catch (error) {
     log(`Failed to start scheduler: ${error}`);
     process.exit(1);
