@@ -55,9 +55,7 @@ EXPOSE 3000
 ENV PORT=3000 \
     HOST=127.0.0.1 \
     CRON_SCHEDULE="0 0 * * *" \
-    NODE_ENV=production \
-    NO_COLOR=1 \
-    DEBUG_MODE=false
+    NODE_ENV=production
 
 # Run the application
 CMD ["bun", "run", "start"] 

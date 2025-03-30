@@ -59,13 +59,8 @@ async function startServer() {
   
   // Ensure the blocklist file exists
   if (!fs.existsSync(FILE_PATH)) {
-    // Skip compilation if in debugging mode
-    if (process.env.NODE_ENV === "production" && process.env.DEBUG_MODE === "true") {
-      console.log("DEPLOYMENT DEBUG: Blocklist file not found, but skipping compilation for debugging");
-    } else {
-      console.log("Blocklist file not found. Compiling now...");
-      await compileBlocklist();
-    }
+    console.log("Blocklist file not found. Compiling now...");
+    await compileBlocklist();
   } else {
     console.log(`Using existing blocklist file: ${FILE_PATH}`);
   }
@@ -103,18 +98,7 @@ async function startServer() {
             return new Response("Internal Server Error", { status: 500 });
           }
           
-          // Check if this is debug mode and file is missing
-          if (!fs.existsSync(FILE_PATH) && process.env.NODE_ENV === "production" && process.env.DEBUG_MODE === "true") {
-            return new Response("Blocklist not available in debug mode - compilation bypassed", {
-              status: 200,
-              headers: {
-                "Content-Type": "text/plain; charset=utf-8",
-                "Cache-Control": "no-cache"
-              }
-            });
-          }
-          
-          // Security check: Ensure file exists (non-debug mode)
+          // Security check: Ensure file exists
           if (!fs.existsSync(FILE_PATH)) {
             return new Response("Blocklist not found", { status: 404 });
           }

@@ -72,20 +72,6 @@ async function main() {
       process.exit(1);
     });
     
-    // DEPLOYMENT DEBUGGING - CHECK IF THIS IS DOCKER ENVIRONMENT
-    if (process.env.NODE_ENV === "production" && process.env.DEBUG_MODE === "true") {
-      console.log("Running in DEBUG_MODE - skipping initial compilation for deployment debugging");
-      
-      // Start the web server only
-      await startServer();
-      
-      console.log("AdGuard Hostlist Compiler Application started in limited mode for deployment debugging");
-      console.log(`Web server: http://${process.env.HOST || "localhost"}:${process.env.PORT || 3000}`);
-      console.log("Initial compilation skipped. Manual compilation will be required.");
-      
-      return;
-    }
-    
     // Read config file
     const configPath = join(process.cwd(), "config.json");
     if (!fs.existsSync(configPath)) {
