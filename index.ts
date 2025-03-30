@@ -87,7 +87,25 @@ async function main() {
     const outputPath = securePath(join(process.cwd(), "adguard-blocklist.txt"));
     if (!fs.existsSync(outputPath)) {
       console.log("No existing blocklist found. Compiling initial blocklist...");
-      await compileBlocklist();
+      try {
+        await compileBlocklist();
+      } catch (error) {
+        console.error("Failed to compile blocklist:", error);
+        console.log("Creating empty blocklist file as fallback...");
+        
+        // Create an empty blocklist with header to allow container to start
+        const timestamp = new Date();
+        const header = [
+          "! Title: Empty AdGuard Home Blocklist (Fallback)",
+          `! Last updated: ${timestamp.toISOString()}`,
+          "! Description: Fallback empty blocklist created due to compilation error",
+          "! This file was automatically created as a fallback because compilation failed.",
+          "!"
+        ].join("\n");
+        
+        fs.writeFileSync(outputPath, header, "utf-8");
+        console.log("Created empty fallback blocklist file.");
+      }
     } else {
       const stats = fs.statSync(outputPath);
       const now = new Date();
