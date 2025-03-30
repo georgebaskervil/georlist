@@ -270,12 +270,6 @@
       "transformations": ["Compress", "ValidateAllowIp"]
     },
     {
-      "name": "ISC SANS Shodan",
-      "type": "hosts",
-      "source": "https://isc.sans.edu/api/threatlist/shodan/shodan.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
-    },
-    {
       "name": "YoYo Adservers IP List",
       "type": "hosts",
       "source": "https://pgl.yoyo.org/adservers/iplist.php?ipformat=&showintro=0&mimetype=plaintext",
