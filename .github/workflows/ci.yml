@@ -20,7 +20,7 @@ jobs:
           cf_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Log in to Quay
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
