@@ -14,7 +14,7 @@
   "dependencies": {
     "@adguard/hostlist-compiler": "^1.0.39",
     "node-cron": "^3.0.3",
-    "date-fns": "^3.6.0",
+    "date-fns": "^4.1.0",
     "abort-controller": "^3.0.0",
     "node-fetch": "^3.3.2"
   },
