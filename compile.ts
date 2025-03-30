@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import compile from "@adguard/hostlist-compiler";
 import path from "path";
 import crypto from "crypto";
+import Ajv from "ajv";
 
 /**
  * Path to the configuration file
@@ -19,6 +20,41 @@ const OUTPUT_PATH = join(process.cwd(), "adguard-blocklist.txt");
  * Default fetch timeout in milliseconds
  */
 const FETCH_TIMEOUT = 30000;
+
+/**
+ * Schema for config.json using JSON Schema syntax
+ */
+const configJsonSchema = {
+  type: "object",
+  properties: {
+    name: { type: "string", description: "Name of the blocklist" },
+    description: { type: "string", description: "Description of the blocklist" },
+    homepage: { type: "string", format: "uri", description: "Homepage URL" },
+    license: { type: "string", description: "License identifier (e.g., MIT)" },
+    version: { type: "string", pattern: "^\\d+\\.\\d+\\.\\d+$", description: "Version string (e.g., 1.0.0)" },
+    updateInterval: { type: "integer", minimum: 60, description: "Update interval in seconds (min 60)" },
+    sources: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          type: { type: "string", enum: ["adblock", "hosts"] },
+          source: { type: "string", format: "uri", pattern: "^https://.*" }, // Ensure HTTPS
+          transformations: {
+            type: "array",
+            items: { type: "string" }
+          }
+        },
+        required: ["name", "type", "source", "transformations"],
+        additionalProperties: false // Disallow extra properties in sources
+      }
+    }
+  },
+  required: ["name", "description", "sources"],
+  additionalProperties: false // Disallow extra properties at the root level
+};
 
 /**
  * Schema for validating config.json
@@ -141,6 +177,74 @@ export async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT): 
 }
 
 /**
+ * Deep inspect objects for potential curly brace issues in strings
+ * that might cause formatting errors in chalk
+ */
+function deepInspectForChalkIssues(obj: unknown, path = ''): { hasIssue: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  if (typeof obj === 'string') {
+    // Check for unbalanced or suspicious curly braces that might confuse chalk
+    let openBraces = 0;
+    let lastOpenIndex = -1;
+    
+    for (let i = 0; i < obj.length; i++) {
+      if (obj[i] === '{') {
+        openBraces++;
+        lastOpenIndex = i;
+      } else if (obj[i] === '}') {
+        openBraces--;
+        // If we have a closing without an opening, that's an issue
+        if (openBraces < 0) {
+          issues.push(`At ${path}: Potential chalk template issue - found extraneous '}' at position ${i} in "${obj}"`);
+          break;
+        }
+      }
+    }
+    
+    // Check if we have unclosed braces
+    if (openBraces > 0) {
+      issues.push(`At ${path}: Potential chalk template issue - found unclosed '{' at position ${lastOpenIndex} in "${obj}"`);
+    }
+    
+    // Check for suspicious patterns that might trigger chalk template errors
+    if (obj.includes('${') || obj.includes('{} ') || obj.includes('{ }')) {
+      issues.push(`At ${path}: Contains potentially problematic pattern for chalk: "${obj}"`);
+    }
+    
+    return { hasIssue: issues.length > 0, issues };
+  }
+  
+  if (obj === null || typeof obj !== 'object') {
+    return { hasIssue: false, issues: [] };
+  }
+  
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    for (let i = 0; i < obj.length; i++) {
+      const result = deepInspectForChalkIssues(obj[i], `${path}[${i}]`);
+      if (result.hasIssue) {
+        issues.push(...result.issues);
+      }
+    }
+    return { hasIssue: issues.length > 0, issues };
+  }
+  
+  // Handle objects
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const newPath = path ? `${path}.${key}` : key;
+      const result = deepInspectForChalkIssues((obj as any)[key], newPath);
+      if (result.hasIssue) {
+        issues.push(...result.issues);
+      }
+    }
+  }
+  
+  return { hasIssue: issues.length > 0, issues };
+}
+
+/**
  * Compile the blocklist using AdGuard's hostlist compiler
  */
 export async function compileBlocklist(): Promise<string> {
@@ -162,10 +266,28 @@ export async function compileBlocklist(): Promise<string> {
       throw new Error(`Invalid JSON in configuration file: ${error}`);
     }
     
-    // Validate config against schema
-    if (!validateConfig(config)) {
-      throw new Error("Configuration file failed validation");
+    // Extra inspection for potential issues with curly braces in strings
+    const inspectionResult = deepInspectForChalkIssues(config);
+    if (inspectionResult.hasIssue) {
+      console.error("Found potential string formatting issues that may cause chalk errors:");
+      for (const issue of inspectionResult.issues) {
+        console.error(`- ${issue}`);
+      }
+      console.error("Please fix these issues in config.json before proceeding.");
+      throw new Error("Configuration contains strings that may cause formatting issues in chalk");
     }
+    
+    // Validate config against JSON Schema using Ajv
+    const ajv = new Ajv();
+    const validate = ajv.compile(configJsonSchema);
+    if (!validate(config)) {
+      console.error("Configuration validation failed:");
+      console.error(JSON.stringify(validate.errors, null, 2)); // Log detailed Ajv errors
+      throw new Error("Configuration file failed validation. Check logs for details.");
+    }
+    // Now TypeScript knows 'config' matches the schema structure implicitly
+    // but we cast for explicit type usage later if needed, though schema enforces it.
+    const validatedConfig = config as ConfigSchema;
     
     // Start timestamp for measuring compilation time
     const startTime = Date.now();
@@ -177,9 +299,9 @@ export async function compileBlocklist(): Promise<string> {
       }, 10 * 60 * 1000); // 10 minutes
       
       try {
-        // Compile the blocklist
-        console.log(`Compiling blocklist from ${config.sources.length} sources...`);
-        const compiledList = await compile(config);
+        // Compile the blocklist - PASSING THE VALIDATED CONFIG
+        console.log(`Compiling blocklist from ${validatedConfig.sources.length} sources...`);
+        const compiledList = await compile(validatedConfig); // Use validatedConfig
         clearTimeout(timeoutId);
         resolve(compiledList);
       } catch (error) {
@@ -191,17 +313,17 @@ export async function compileBlocklist(): Promise<string> {
     // Wait for compilation to complete
     const compiledList = await compilationPromise;
     
-    // Add custom header
+    // Add custom header - USE validatedConfig
     const timestamp = new Date();
     const header = [
       "! Title: Combined AdGuard Home Blocklist",
       `! Last updated: ${format(timestamp, "yyyy-MM-dd HH:mm:ss")}`,
-      `! Version: ${config.version || "1.0.0"}`,
-      `! Total number of sources: ${config.sources.length}`,
+      `! Version: ${validatedConfig.version || "1.0.0"}`, // Use validatedConfig
+      `! Total number of sources: ${validatedConfig.sources.length}`, // Use validatedConfig
       `! Total number of rules: ${compiledList.length}`,
       "! Description: A comprehensive blocklist for AdGuard Home compiled from multiple sources",
-      `! Homepage: ${config.homepage || "https://github.com/yourusername/georlist"}`,
-      `! License: ${config.license || "MIT"}`,
+      `! Homepage: ${validatedConfig.homepage || "https://github.com/yourusername/georlist"}`, // Use validatedConfig
+      `! License: ${validatedConfig.license || "MIT"}`, // Use validatedConfig
       "!"
     ].join("\n");
     
@@ -221,7 +343,7 @@ export async function compileBlocklist(): Promise<string> {
     return OUTPUT_PATH;
   } catch (error) {
     console.error("Error compiling blocklist:", error);
-    throw error;
+    throw error; // Re-throw error after logging
   }
 }
 

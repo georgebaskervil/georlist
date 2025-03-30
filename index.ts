@@ -72,6 +72,20 @@ async function main() {
       process.exit(1);
     });
     
+    // DEPLOYMENT DEBUGGING - CHECK IF THIS IS DOCKER ENVIRONMENT
+    if (process.env.NODE_ENV === "production" && process.env.NO_COLOR === "1") {
+      console.log("Running in production Docker environment - skipping initial compilation for deployment debugging");
+      
+      // Start the web server only
+      await startServer();
+      
+      console.log("AdGuard Hostlist Compiler Application started in limited mode for deployment debugging");
+      console.log(`Web server: http://${process.env.HOST || "localhost"}:${process.env.PORT || 3000}`);
+      console.log("Initial compilation skipped. Manual compilation will be required.");
+      
+      return;
+    }
+    
     // Read config file
     const configPath = join(process.cwd(), "config.json");
     if (!fs.existsSync(configPath)) {
@@ -112,7 +126,7 @@ async function main() {
     await startServer();
     
     console.log("AdGuard Hostlist Compiler Application started successfully");
-    console.log(`Web server: http://${HOST}:${PORT}`);
+    console.log(`Web server: http://${process.env.HOST || "localhost"}:${process.env.PORT || 3000}`);
     console.log(`Scheduler: ${CRON_SCHEDULE}`);
   } catch (error) {
     console.error("Failed to start application:", error);

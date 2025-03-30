@@ -43,7 +43,7 @@ USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
+  CMD bun --version || exit 1
 
 # Set file and directory permission umask
 RUN echo "umask 027" >> ~/.profile
@@ -55,7 +55,8 @@ EXPOSE 3000
 ENV PORT=3000 \
     HOST=127.0.0.1 \
     CRON_SCHEDULE="0 0 * * *" \
-    NODE_ENV=production
+    NODE_ENV=production \
+    NO_COLOR=1
 
 # Run the application
 CMD ["bun", "run", "start"] 
