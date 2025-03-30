@@ -33,3 +33,9 @@ jobs:
       - name: Push to Quay.io
         run: |
           docker push quay.io/georgebaskervil/georlist:latest
+
+      - name: Trigger Coolify Redeploy
+        run: |
+          curl -X GET "https://c.geor.me/api/v1/deploy?uuid=l0w0gckwkwg8w848kowk0sk0&force=false" \
+            -H "Content-Type: application/json" \
+            -H "authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}"
