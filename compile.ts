@@ -1,7 +1,7 @@
 import fs from "fs";
 import { join } from "path";
 import { format } from "date-fns";
-import compile from "@adguard/hostlist-compiler";
+import compile, { IConfiguration, Transformation } from "@adguard/hostlist-compiler";
 import path from "path";
 import crypto from "crypto";
 import Ajv from "ajv";
@@ -245,6 +245,20 @@ function deepInspectForChalkIssues(obj: unknown, path = ''): { hasIssue: boolean
 }
 
 /**
+ * Convert our config schema to the AdGuard compiler expected format
+ */
+function convertToCompilerConfig(config: ConfigSchema): IConfiguration {
+  return {
+    ...config,
+    sources: config.sources.map(source => ({
+      ...source,
+      // Convert string[] to Transformation[] as required by the compiler
+      transformations: source.transformations.map(t => t as unknown as Transformation)
+    }))
+  };
+}
+
+/**
  * Compile the blocklist using AdGuard's hostlist compiler
  */
 export async function compileBlocklist(): Promise<string> {
@@ -285,9 +299,17 @@ export async function compileBlocklist(): Promise<string> {
       console.error(JSON.stringify(validate.errors, null, 2)); // Log detailed Ajv errors
       throw new Error("Configuration file failed validation. Check logs for details.");
     }
-    // Now TypeScript knows 'config' matches the schema structure implicitly
-    // but we cast for explicit type usage later if needed, though schema enforces it.
-    const validatedConfig = config as ConfigSchema;
+    
+    // Validate using our type guard to ensure the config matches our ConfigSchema
+    if (!validateConfig(config)) {
+      throw new Error("Configuration failed type validation");
+    }
+    
+    // Now TypeScript knows 'config' matches the ConfigSchema type
+    const validatedConfig: ConfigSchema = config;
+    
+    // Convert to the format expected by AdGuard hostlist compiler
+    const compilerConfig = convertToCompilerConfig(validatedConfig);
     
     // Start timestamp for measuring compilation time
     const startTime = Date.now();
@@ -301,7 +323,7 @@ export async function compileBlocklist(): Promise<string> {
       try {
         // Compile the blocklist - PASSING THE VALIDATED CONFIG
         console.log(`Compiling blocklist from ${validatedConfig.sources.length} sources...`);
-        const compiledList = await compile(validatedConfig); // Use validatedConfig
+        const compiledList = await compile(compilerConfig);
         clearTimeout(timeoutId);
         resolve(compiledList);
       } catch (error) {
