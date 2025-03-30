@@ -73,8 +73,8 @@ async function main() {
     });
     
     // DEPLOYMENT DEBUGGING - CHECK IF THIS IS DOCKER ENVIRONMENT
-    if (process.env.NODE_ENV === "production" && process.env.NO_COLOR === "1") {
-      console.log("Running in production Docker environment - skipping initial compilation for deployment debugging");
+    if (process.env.NODE_ENV === "production" && process.env.DEBUG_MODE === "true") {
+      console.log("Running in DEBUG_MODE - skipping initial compilation for deployment debugging");
       
       // Start the web server only
       await startServer();
