@@ -22,6 +22,9 @@ RUN npm run build
 # Production stage
 FROM base AS runtime
 
+# Install wget for healthcheck
+RUN apk add --no-cache wget
+
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
@@ -47,8 +50,8 @@ USER appuser
 EXPOSE 3000
 
 # Healthcheck configuration
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
-  CMD curl -f http://localhost:3000/health || exit 1
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
+  CMD wget -q --spider --tries=1 --timeout=10 http://localhost:3000/health || exit 1
 
 # Start the application
 CMD ["node", "dist/index.js"] 
