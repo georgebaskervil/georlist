@@ -41,5 +41,11 @@
         "ValidateAllowIp"
       ]
     }
+  ],
+  "transformations": [
+    "Deduplicate",
+    "RemoveEmptyLines",
+    "TrimLines",
+    "InsertFinalNewLine"
   ]
 }
