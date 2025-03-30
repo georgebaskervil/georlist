@@ -4,7 +4,8 @@ import { format } from "date-fns";
 import compile, { IConfiguration, Transformation } from "@adguard/hostlist-compiler";
 import path from "path";
 import crypto from "crypto";
-import Ajv from "ajv";
+import Ajv, { ErrorObject } from "ajv";
+import addFormats from "ajv-formats";
 import fetch, { Response } from "node-fetch";
 import { AbortController } from "abort-controller";
 
@@ -44,18 +45,31 @@ const configJsonSchema = {
           name: { type: "string" },
           type: { type: "string", enum: ["adblock", "hosts"] },
           source: { type: "string", format: "uri", pattern: "^https://.*" }, // Ensure HTTPS
-          transformations: {
-            type: "array",
-            items: { type: "string" }
-          }
+          // Source-specific transformations are optional now (or removed if not needed)
+          // transformations: { 
+          //   type: "array",
+          //   items: { type: "string" }
+          // } 
         },
-        required: ["name", "type", "source", "transformations"],
+        // 'transformations' is no longer required here
+        required: ["name", "type", "source"], 
         additionalProperties: false // Disallow extra properties in sources
       }
+    },
+    // Add optional root-level transformations
+    transformations: {
+      type: "array",
+      items: { 
+        type: "string",
+        // You might want to add an enum here if you have a fixed list of valid transformations
+        // enum: ["RemoveComments", "Compress", "RemoveModifiers", ...] 
+      },
+      description: "Global transformations applied after source-specific ones"
     }
   },
   required: ["name", "description", "sources"],
-  additionalProperties: false // Disallow extra properties at the root level
+  // Still disallow other extra properties at the root level
+  additionalProperties: false 
 };
 
 /**
@@ -72,42 +86,42 @@ interface ConfigSchema {
     name: string;
     type: "adblock" | "hosts";
     source: string;
-    transformations: string[];
+    // Source-specific transformations are optional/removed
+    // transformations?: string[]; 
   }[];
-  transformations?: string[];
+  // Root-level transformations remain optional
+  transformations?: string[]; 
 }
 
 /**
- * Validate configuration against schema
+ * Validate configuration against schema using Ajv
  */
 function validateConfig(config: any): config is ConfigSchema {
-  // Check basic structure
-  if (!config || typeof config !== 'object') return false;
+  const ajv = new Ajv({ allErrors: true }); // Initialize Ajv
+  addFormats(ajv); // Add standard formats like "uri"
+  const validate = ajv.compile(configJsonSchema); // Compile the schema
   
-  // Check required fields
-  if (typeof config.name !== 'string') return false;
-  if (typeof config.description !== 'string') return false;
-  
-  // Check sources array
-  if (!Array.isArray(config.sources)) return false;
-  
-  // Validate each source
-  for (const source of config.sources) {
-    if (typeof source !== 'object') return false;
-    if (typeof source.name !== 'string') return false;
-    if (source.type !== 'adblock' && source.type !== 'hosts') return false;
-    if (typeof source.source !== 'string') return false;
-    if (!source.source.startsWith('https://')) return false; // Require HTTPS
-    if (!Array.isArray(source.transformations)) return false;
+  if (!validate(config)) {
+    // Format errors for better readability
+    const errors = (validate.errors as ErrorObject[])
+      .map(error => {
+        const instancePath = error.instancePath ? `at ${error.instancePath}` : '';
+        return `- ${instancePath} ${error.message}`;
+      })
+      .join('\n');
+      
+    throw new Error(`Invalid configuration format:\n${errors}`);
   }
   
-  // Optional fields
-  if (config.homepage !== undefined && typeof config.homepage !== 'string') return false;
-  if (config.license !== undefined && typeof config.license !== 'string') return false;
-  if (config.version !== undefined && typeof config.version !== 'string') return false;
-  if (config.updateInterval !== undefined && typeof config.updateInterval !== 'number') return false;
-  
-  return true;
+  // Additional specific checks not easily covered by schema alone
+  for (const source of config.sources) {
+    if (!source.source.startsWith('https://')) {
+       throw new Error(`Invalid source URL in source "${source.name}": "${source.source}". Only HTTPS URLs are allowed.`);
+    }
+    // Add any other specific checks here if needed
+  }
+
+  return true; // Validation passed
 }
 
 /**
@@ -255,12 +269,13 @@ function convertToCompilerConfig(config: ConfigSchema): IConfiguration {
   const compilerConfig: IConfiguration = {
     name: config.name,
     description: config.description,
+    // Map sources without source-specific transformations
     sources: config.sources.map(source => ({
       name: source.name,
       type: source.type,
       source: source.source,
-      // Convert string[] to Transformation[] as required by the compiler
-      transformations: source.transformations.map(t => t as unknown as Transformation)
+      // Remove source-specific transformations as they are not in ConfigSchema anymore
+      // transformations: source.transformations ? source.transformations.map(t => t as unknown as Transformation) : undefined
     }))
   };
   
@@ -269,7 +284,7 @@ function convertToCompilerConfig(config: ConfigSchema): IConfiguration {
   if (config.license) compilerConfig.license = config.license;
   if (config.version) compilerConfig.version = config.version;
   
-  // Add the transformations if present
+  // Add the global transformations if present
   if (Array.isArray(config.transformations)) {
     compilerConfig.transformations = config.transformations.map(t => t as unknown as Transformation);
   }
@@ -290,16 +305,19 @@ export async function compileBlocklist(): Promise<string> {
     }
 
     // Read and parse the configuration file
-    const configContents = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    const config = JSON.parse(configContents);
-
-    // Validate configuration
-    if (!validateConfig(config)) {
-      throw new Error("Invalid configuration format");
+    let config: any;
+    try {
+      const configContents = fs.readFileSync(CONFIG_PATH, 'utf-8');
+      config = JSON.parse(configContents);
+    } catch (parseError: any) {
+      throw new Error(`Failed to parse config.json: ${parseError.message}`);
     }
 
-    // Convert to compiler compatible configuration
-    const compilerConfig = convertToCompilerConfig(config);
+    // Validate configuration - this will throw a detailed error if invalid
+    validateConfig(config); 
+
+    // Convert to compiler compatible configuration (We know config is valid ConfigSchema now)
+    const compilerConfig = convertToCompilerConfig(config as ConfigSchema);
 
     // Run compilation
     console.log(`Compiling blocklist from ${config.sources.length} sources...`);

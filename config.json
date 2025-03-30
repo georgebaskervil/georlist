@@ -8,308 +8,261 @@
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_49.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_49.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_30.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_30.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_12.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_12.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_55.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_55.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_54.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_54.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_56.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_56.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_44.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_44.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_10.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_10.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_8.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_8.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_18.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_18.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_42.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_42.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_31.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_31.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_9.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_9.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_50.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_50.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_11.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_11.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_6.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_6.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_7.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_7.txt"
     },
     {
       "name": "Malware filter",
       "type": "hosts",
-      "source": "https://malware-filter.gitlab.io/malware-filter/botnet-filter-agh.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://malware-filter.gitlab.io/malware-filter/botnet-filter-agh.txt"
     },
     {
       "name": "NSFW filter",
       "type": "hosts",
-      "source": "https://nsfw.oisd.nl/",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://nsfw.oisd.nl/"
     },
     {
       "name": "1Hosts",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/badmojr/1Hosts/master/Xtra/adblock.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/badmojr/1Hosts/master/Xtra/adblock.txt"
     },
     {
       "name": "Hagezi DNS blocklists",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tif-ips.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tif-ips.txt"
     },
     {
       "name": "DeveloperDan Tracking",
       "type": "hosts",
-      "source": "https://www.github.developerdan.com/hosts/lists/tracking-aggressive-extended.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://www.github.developerdan.com/hosts/lists/tracking-aggressive-extended.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_46.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_46.txt"
     },
     {
       "name": "AdGuard and other filter lists",
       "type": "adblock",
-      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_47.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://adguardteam.github.io/HostlistsRegistry/assets/filter_47.txt"
     },
     {
       "name": "DeveloperDan Dating",
       "type": "hosts",
-      "source": "https://www.github.developerdan.com/hosts/lists/dating-services-extended.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://www.github.developerdan.com/hosts/lists/dating-services-extended.txt"
     },
     {
       "name": "DeveloperDan Hate and Junk",
       "type": "hosts",
-      "source": "https://www.github.developerdan.com/hosts/lists/hate-and-junk-extended.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://www.github.developerdan.com/hosts/lists/hate-and-junk-extended.txt"
     },
     {
       "name": "Anti-typo",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/iam-py-test/my_filters_001/main/Alternative%20list%20formats/antitypo_hosts.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/iam-py-test/my_filters_001/main/Alternative%20list%20formats/antitypo_hosts.txt"
     },
     {
       "name": "ShadowWhisperer Marketing Email",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Marketing-Email",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Marketing-Email"
     },
     {
       "name": "ShadowWhisperer Marketing",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Marketing",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Marketing"
     },
     {
       "name": "ShadowWhisperer Remote",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Remote",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Remote"
     },
     {
       "name": "ShadowWhisperer Typo",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Typo",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Typo"
     },
     {
       "name": "ShadowWhisperer Risk",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Risk",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Risk"
     },
     {
       "name": "NSA Blocklist",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/daylamtayari/Pi-Hole-Blocklist/master/Mirrors/NSA-Blocklist--CHEF-KOCH.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/daylamtayari/Pi-Hole-Blocklist/master/Mirrors/NSA-Blocklist--CHEF-KOCH.txt"
     },
     {
       "name": "Anti-visit",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/iam-py-test/my_filters_001/main/anti-visit.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/iam-py-test/my_filters_001/main/anti-visit.txt"
     },
     {
       "name": "AlienVault Reputation",
       "type": "hosts",
-      "source": "https://reputation.alienvault.com/reputation.generic",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://reputation.alienvault.com/reputation.generic"
     },
     {
       "name": "Binary Defense Banlist",
       "type": "hosts",
-      "source": "https://www.binarydefense.com/banlist.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://www.binarydefense.com/banlist.txt"
     },
     {
       "name": "CINS Score",
       "type": "hosts",
-      "source": "https://cinsscore.com/list/ci-badguys.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://cinsscore.com/list/ci-badguys.txt"
     },
     {
       "name": "Tor Exit Nodes",
       "type": "hosts",
-      "source": "https://www.dan.me.uk/torlist/",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://www.dan.me.uk/torlist/"
     },
     {
       "name": "Emerging Threats Compromised IPs",
       "type": "hosts",
-      "source": "https://rules.emergingthreats.net/blockrules/compromised-ips.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://rules.emergingthreats.net/blockrules/compromised-ips.txt"
     },
     {
       "name": "Emerging Threats Block IPs",
       "type": "hosts",
-      "source": "https://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt"
     },
     {
       "name": "Firehol Level 1",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset"
     },
     {
       "name": "Firehol Level 2",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level2.netset",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level2.netset"
     },
     {
       "name": "Firehol Level 3",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level3.netset",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level3.netset"
     },
     {
       "name": "DShield Block",
       "type": "hosts",
-      "source": "https://feeds.dshield.org/block.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://feeds.dshield.org/block.txt"
     },
     {
       "name": "YoYo Adservers IP List",
       "type": "hosts",
-      "source": "https://pgl.yoyo.org/adservers/iplist.php?ipformat=&showintro=0&mimetype=plaintext",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://pgl.yoyo.org/adservers/iplist.php?ipformat=&showintro=0&mimetype=plaintext"
     },
     {
       "name": "NRD Part 1",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/xRuffKez/NRD/refs/heads/main/lists/30-day/adblock/nrd-30day_adblock_part1.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/xRuffKez/NRD/refs/heads/main/lists/30-day/adblock/nrd-30day_adblock_part1.txt"
     },
     {
       "name": "NRD Part 2",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/xRuffKez/NRD/refs/heads/main/lists/30-day/adblock/nrd-30day_adblock_part2.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/xRuffKez/NRD/refs/heads/main/lists/30-day/adblock/nrd-30day_adblock_part2.txt"
     },
     {
       "name": "DNS Rebinding",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/georgebaskervil/Personal-DNS-Filterlists/refs/heads/main/lists-under-CC0-1.0/dnsrebindingblocklist.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/georgebaskervil/Personal-DNS-Filterlists/refs/heads/main/lists-under-CC0-1.0/dnsrebindingblocklist.txt"
     },
     {
       "name": "Fonts Blocklist",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/georgebaskervil/Personal-DNS-Filterlists/refs/heads/main/lists-under-CC-BY-NC-SA-4.0/fonts_blocklist.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/georgebaskervil/Personal-DNS-Filterlists/refs/heads/main/lists-under-CC-BY-NC-SA-4.0/fonts_blocklist.txt"
     },
     {
       "name": "Cookie Consent",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/georgebaskervil/Personal-DNS-Filterlists/refs/heads/main/lists-under-CC-BY-NC-SA-4.0/cookieconsent_blocklist.txt",
-      "transformations": ["Compress", "ValidateAllowIp"]
+      "source": "https://raw.githubusercontent.com/georgebaskervil/Personal-DNS-Filterlists/refs/heads/main/lists-under-CC-BY-NC-SA-4.0/cookieconsent_blocklist.txt"
     }
   ],
   "transformations": [
+    "RemoveComments",
+    "Compress",
+    "RemoveModifiers",
+    "ValidateAllowIp",
     "Deduplicate",
     "RemoveEmptyLines",
-    "TrimLines",
-    "InsertFinalNewLine"
+    "TrimLines"
   ]
 } 
