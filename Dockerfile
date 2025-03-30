@@ -1,4 +1,4 @@
-FROM oven/bun:1.0.24 AS builder
+FROM oven/bun:1.2.5 AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY *.ts *.json ./
 # Build the application
 RUN bun run build
 
-FROM oven/bun:1.0.24-slim
+FROM oven/bun:1.2.5-slim
 
 WORKDIR /app
 
