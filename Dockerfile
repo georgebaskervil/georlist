@@ -9,9 +9,6 @@ RUN bun install --frozen-lockfile
 # Copy application files
 COPY *.ts *.json ./
 
-# Build the application
-RUN bun run build
-
 FROM oven/bun:1.2.5-slim
 
 WORKDIR /app
@@ -22,12 +19,12 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy only production dependencies
+# Copy production dependencies and package files from builder
 COPY --from=builder /app/package.json /app/bun.lock ./
 RUN bun install --frozen-lockfile --production
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
+# Copy application source files from builder
+COPY --from=builder /app/*.ts /app/*.json ./
 
 # Create volume with explicit permissions
 RUN mkdir -p /app/data && chmod 750 /app/data
