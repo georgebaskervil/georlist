@@ -191,11 +191,6 @@
       "source": "https://cinsscore.com/list/ci-badguys.txt"
     },
     {
-      "name": "Tor Exit Nodes",
-      "type": "hosts",
-      "source": "https://www.dan.me.uk/torlist/"
-    },
-    {
       "name": "Emerging Threats Compromised IPs",
       "type": "hosts",
       "source": "https://rules.emergingthreats.net/blockrules/compromised-ips.txt"

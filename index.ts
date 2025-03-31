@@ -83,43 +83,13 @@ async function main() {
       throw new Error("Failed to parse configuration file");
     }
     
-    // Check for output file and compile if needed
-    const outputPath = securePath(join(process.cwd(), "adguard-blocklist.txt"));
-    if (!fs.existsSync(outputPath)) {
-      console.log("No existing blocklist found. Compiling initial blocklist...");
-      try {
-        await compileBlocklist();
-      } catch (error) {
-        console.error("Failed to compile blocklist:", error);
-        console.log("Creating empty blocklist file as fallback...");
-        
-        // Create an empty blocklist with header to allow container to start
-        const timestamp = new Date();
-        const header = [
-          "! Title: Empty AdGuard Home Blocklist (Fallback)",
-          `! Last updated: ${timestamp.toISOString()}`,
-          "! Description: Fallback empty blocklist created due to compilation error",
-          "! This file was automatically created as a fallback because compilation failed.",
-          "!"
-        ].join("\n");
-        
-        fs.writeFileSync(outputPath, header, "utf-8");
-        console.log("Created empty fallback blocklist file.");
-      }
-    } else {
-      const stats = fs.statSync(outputPath);
-      const now = new Date();
-      const fileAge = (now.getTime() - stats.mtime.getTime()) / 1000; // age in seconds
-      
-      // If file is older than a day (or specified update interval), recompile
-      const updateInterval = config.updateInterval || 86400; // default: 1 day in seconds
-      
-      if (fileAge > updateInterval) {
-        console.log(`Blocklist is older than ${updateInterval} seconds. Recompiling...`);
-        await compileBlocklist();
-      } else {
-        console.log(`Using existing blocklist (age: ${Math.floor(fileAge)} seconds)`);
-      }
+    // Always compile a fresh blocklist
+    console.log("Compiling blocklist...");
+    try {
+      await compileBlocklist();
+    } catch (error) {
+      console.error("Failed to compile blocklist:", error);
+      throw new Error("Blocklist compilation failed - aborting startup");
     }
     
     // Start the cron scheduler for regular updates

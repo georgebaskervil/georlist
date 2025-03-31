@@ -4,8 +4,9 @@ import { format } from "date-fns";
 import compile, { IConfiguration, Transformation } from "@adguard/hostlist-compiler";
 import path from "path";
 import crypto from "crypto";
-import Ajv, { ErrorObject } from "ajv";
-import addFormats from "ajv-formats";
+import * as Ajv from 'ajv';
+import { ErrorObject } from "ajv";
+import * as addFormats from 'ajv-formats';
 import fetch, { Response } from "node-fetch";
 import { AbortController } from "abort-controller";
 
@@ -97,9 +98,9 @@ interface ConfigSchema {
  * Validate configuration against schema using Ajv
  */
 function validateConfig(config: any): config is ConfigSchema {
-  const ajv = new Ajv({ allErrors: true }); // Initialize Ajv
-  addFormats(ajv); // Add standard formats like "uri"
-  const validate = ajv.compile(configJsonSchema); // Compile the schema
+  const ajv = new Ajv.default({ allErrors: true });
+  addFormats.default(ajv);
+  const validate = ajv.compile(configJsonSchema);
   
   if (!validate(config)) {
     // Format errors for better readability
@@ -113,8 +114,12 @@ function validateConfig(config: any): config is ConfigSchema {
     throw new Error(`Invalid configuration format:\n${errors}`);
   }
   
+  // Explicitly assert the type after validation passes
+  // Use a double assertion (any -> unknown -> ConfigSchema)
+  const validConfig = config as unknown as ConfigSchema;
+
   // Additional specific checks not easily covered by schema alone
-  for (const source of config.sources) {
+  for (const source of validConfig.sources) {
     if (!source.source.startsWith('https://')) {
        throw new Error(`Invalid source URL in source "${source.name}": "${source.source}". Only HTTPS URLs are allowed.`);
     }

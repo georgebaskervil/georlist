@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "node --loader ts-node/esm index.ts",
+    "start": "node --max-old-space-size=4096 dist/index.js",
     "compile": "node --loader ts-node/esm compile.ts",
     "dev": "nodemon --exec node --loader ts-node/esm index.ts",
     "server": "node --loader ts-node/esm server.ts",
