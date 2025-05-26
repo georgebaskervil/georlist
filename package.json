@@ -16,7 +16,7 @@
     "abort-controller": "^3.0.0",
     "ajv-formats": "^3.0.1",
     "date-fns": "^4.1.0",
-    "node-cron": "^3.0.3",
+    "node-cron": "^4.0.7",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
