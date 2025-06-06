@@ -21,9 +21,9 @@ const CONFIG_PATH = join(process.cwd(), "config.json");
 const OUTPUT_PATH = join(process.cwd(), "adguard-blocklist.txt");
 
 /**
- * Default fetch timeout in milliseconds
+ * Default fetch timeout in milliseconds - reduced for fail-fast behavior
  */
-const FETCH_TIMEOUT = 30000;
+const FETCH_TIMEOUT = 10000; // 10 seconds instead of 30
 
 /**
  * Schema for config.json using JSON Schema syntax
@@ -45,31 +45,21 @@ const configJsonSchema = {
         properties: {
           name: { type: "string" },
           type: { type: "string", enum: ["adblock", "hosts"] },
-          source: { type: "string", format: "uri", pattern: "^https://.*" }, // Ensure HTTPS
-          // Source-specific transformations are optional now (or removed if not needed)
-          // transformations: { 
-          //   type: "array",
-          //   items: { type: "string" }
-          // } 
+          source: { type: "string", format: "uri", pattern: "^https://.*" },
         },
-        // 'transformations' is no longer required here
         required: ["name", "type", "source"], 
-        additionalProperties: false // Disallow extra properties in sources
+        additionalProperties: false
       }
     },
-    // Add optional root-level transformations
     transformations: {
       type: "array",
       items: { 
         type: "string",
-        // You might want to add an enum here if you have a fixed list of valid transformations
-        // enum: ["RemoveComments", "Compress", "RemoveModifiers", ...] 
       },
       description: "Global transformations applied after source-specific ones"
     }
   },
   required: ["name", "description", "sources"],
-  // Still disallow other extra properties at the root level
   additionalProperties: false 
 };
 
@@ -87,10 +77,7 @@ interface ConfigSchema {
     name: string;
     type: "adblock" | "hosts";
     source: string;
-    // Source-specific transformations are optional/removed
-    // transformations?: string[]; 
   }[];
-  // Root-level transformations remain optional
   transformations?: string[]; 
 }
 
@@ -103,7 +90,6 @@ function validateConfig(config: any): config is ConfigSchema {
   const validate = ajv.compile(configJsonSchema);
   
   if (!validate(config)) {
-    // Format errors for better readability
     const errors = (validate.errors as ErrorObject[])
       .map(error => {
         const instancePath = error.instancePath ? `at ${error.instancePath}` : '';
@@ -114,29 +100,22 @@ function validateConfig(config: any): config is ConfigSchema {
     throw new Error(`Invalid configuration format:\n${errors}`);
   }
   
-  // Explicitly assert the type after validation passes
-  // Use a double assertion (any -> unknown -> ConfigSchema)
   const validConfig = config as unknown as ConfigSchema;
 
-  // Additional specific checks not easily covered by schema alone
   for (const source of validConfig.sources) {
     if (!source.source.startsWith('https://')) {
        throw new Error(`Invalid source URL in source "${source.name}": "${source.source}". Only HTTPS URLs are allowed.`);
     }
-    // Add any other specific checks here if needed
   }
 
-  return true; // Validation passed
+  return true;
 }
 
 /**
  * Secure the path to prevent path traversal attacks
  */
 function securePath(filePath: string): string {
-  // Normalize the path to resolve any ../ or ./ components
   const normalizedPath = path.normalize(filePath);
-  
-  // Ensure the path is within the current working directory
   const resolvedPath = path.resolve(normalizedPath);
   const cwdPath = path.resolve(process.cwd());
   
@@ -152,18 +131,14 @@ function securePath(filePath: string): string {
  */
 function secureWriteFile(filePath: string, data: string): void {
   const securedPath = securePath(filePath);
-  
-  // Create a temporary file first
   const tempFileName = `${securedPath}.${crypto.randomBytes(8).toString('hex')}.tmp`;
   
-  // Write to the temporary file
   fs.writeFileSync(tempFileName, data, { 
     encoding: 'utf-8',
-    mode: 0o644, // rw-r--r--
-    flag: 'wx'   // Fail if file exists
+    mode: 0o644,
+    flag: 'wx'
   });
   
-  // Rename the temporary file to the target (atomic operation)
   fs.renameSync(tempFileName, securedPath);
 }
 
@@ -171,13 +146,14 @@ function secureWriteFile(filePath: string, data: string): void {
  * Fetch with timeout and TLS validation
  */
 export async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT): Promise<Response> {
-  // Validate URL (only allow https:// URLs)
   if (!url.startsWith('https://')) {
     throw new Error("Only HTTPS URLs are allowed");
   }
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
   
   try {
     const response = await fetch(url, {
@@ -187,150 +163,175 @@ export async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT): 
       }
     });
     
-    // Validate the response
     if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      throw new Error(`HTTP error ${response.status}: ${response.statusText} for ${url}`);
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (contentType && !contentType.includes('text/') && !contentType.includes('application/')) {
+      throw new Error(`Invalid content type '${contentType}' for ${url}. Expected text content.`);
     }
     
     return response;
+  } catch (fetchError) {
+    const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+    throw new Error(`Failed to fetch ${url}: ${errorMessage}`);
   } finally {
     clearTimeout(timeoutId);
   }
 }
 
 /**
- * Deep inspect objects for potential curly brace issues in strings
- * that might cause formatting errors in chalk
- */
-function deepInspectForChalkIssues(obj: unknown, path = ''): { hasIssue: boolean; issues: string[] } {
-  const issues: string[] = [];
-  
-  if (typeof obj === 'string') {
-    // Check for unbalanced or suspicious curly braces that might confuse chalk
-    let openBraces = 0;
-    let lastOpenIndex = -1;
-    
-    for (let i = 0; i < obj.length; i++) {
-      if (obj[i] === '{') {
-        openBraces++;
-        lastOpenIndex = i;
-      } else if (obj[i] === '}') {
-        openBraces--;
-        // If we have a closing without an opening, that's an issue
-        if (openBraces < 0) {
-          issues.push(`At ${path}: Potential chalk template issue - found extraneous '}' at position ${i} in "${obj}"`);
-          break;
-        }
-      }
-    }
-    
-    // Check if we have unclosed braces
-    if (openBraces > 0) {
-      issues.push(`At ${path}: Potential chalk template issue - found unclosed '{' at position ${lastOpenIndex} in "${obj}"`);
-    }
-    
-    // Check for suspicious patterns that might trigger chalk template errors
-    if (obj.includes('${') || obj.includes('{} ') || obj.includes('{ }')) {
-      issues.push(`At ${path}: Contains potentially problematic pattern for chalk: "${obj}"`);
-    }
-    
-    return { hasIssue: issues.length > 0, issues };
-  }
-  
-  if (obj === null || typeof obj !== 'object') {
-    return { hasIssue: false, issues: [] };
-  }
-  
-  // Handle arrays
-  if (Array.isArray(obj)) {
-    for (let i = 0; i < obj.length; i++) {
-      const result = deepInspectForChalkIssues(obj[i], `${path}[${i}]`);
-      if (result.hasIssue) {
-        issues.push(...result.issues);
-      }
-    }
-    return { hasIssue: issues.length > 0, issues };
-  }
-  
-  // Handle objects
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const newPath = path ? `${path}.${key}` : key;
-      const result = deepInspectForChalkIssues((obj as any)[key], newPath);
-      if (result.hasIssue) {
-        issues.push(...result.issues);
-      }
-    }
-  }
-  
-  return { hasIssue: issues.length > 0, issues };
-}
-
-/**
- * Convert our config schema to the AdGuard compiler expected format
- */
-function convertToCompilerConfig(config: ConfigSchema): IConfiguration {
-  // Create a clean configuration object with only the allowed properties
-  const compilerConfig: IConfiguration = {
-    name: config.name,
-    description: config.description,
-    // Map sources without source-specific transformations
-    sources: config.sources.map(source => ({
-      name: source.name,
-      type: source.type,
-      source: source.source,
-      // Remove source-specific transformations as they are not in ConfigSchema anymore
-      // transformations: source.transformations ? source.transformations.map(t => t as unknown as Transformation) : undefined
-    }))
-  };
-  
-  // Add optional properties only if they exist in the AdGuard schema
-  if (config.homepage) compilerConfig.homepage = config.homepage;
-  if (config.license) compilerConfig.license = config.license;
-  if (config.version) compilerConfig.version = config.version;
-  
-  // Add the global transformations if present
-  if (Array.isArray(config.transformations)) {
-    compilerConfig.transformations = config.transformations.map(t => t as unknown as Transformation);
-  }
-  
-  return compilerConfig;
-}
-
-/**
- * Compile blocklist from sources
+ * Compile blocklist from sources with fail-fast behavior and debug logging
  */
 export async function compileBlocklist(): Promise<string> {
+  console.log('[DEBUG] Starting blocklist compilation...');
+  const startTime = Date.now();
+  
   try {
-    console.log("Starting blocklist compilation...");
-
     // Validate input config exists
+    console.log('[DEBUG] Checking for config file...');
     if (!fs.existsSync(CONFIG_PATH)) {
       throw new Error(`Config file not found at ${CONFIG_PATH}`);
     }
+    console.log(`[DEBUG] Config file found at: ${CONFIG_PATH}`);
 
     // Read and parse the configuration file
+    console.log('[DEBUG] Reading and parsing configuration file...');
     let config: any;
     try {
       const configContents = fs.readFileSync(CONFIG_PATH, 'utf-8');
+      console.log(`[DEBUG] Config file size: ${configContents.length} characters`);
       config = JSON.parse(configContents);
+      console.log(`[DEBUG] Config parsed successfully`);
     } catch (parseError: any) {
+      console.error('[ERROR] Failed to parse config.json:', parseError);
       throw new Error(`Failed to parse config.json: ${parseError.message}`);
     }
 
-    // Validate configuration - this will throw a detailed error if invalid
-    validateConfig(config); 
+    // Validate configuration
+    console.log('[DEBUG] Validating configuration schema...');
+    validateConfig(config);
+    console.log('[DEBUG] Configuration validation passed');
 
-    // Convert to compiler compatible configuration (We know config is valid ConfigSchema now)
-    const compilerConfig = convertToCompilerConfig(config as ConfigSchema);
+    const enabledSources = config.sources.filter((source: any) => source.enabled !== false);
+    console.log(`[DEBUG] Found ${enabledSources.length} enabled sources out of ${config.sources.length} total`);
 
-    // Run compilation
-    console.log(`Compiling blocklist from ${config.sources.length} sources...`);
-    const startTime = Date.now();
-    const compiledRules = await compile(compilerConfig);
-    const elapsed = Date.now() - startTime;
+    // Fetch all sources with fail-fast behavior
+    console.log('[DEBUG] Starting to fetch sources individually...');
+    const allRules: string[] = [];
+    
+    for (let i = 0; i < enabledSources.length; i++) {
+      const source = enabledSources[i];
+      console.log(`[DEBUG] Fetching source ${i + 1}/${enabledSources.length}: ${source.name}`);
+      console.log(`[DEBUG] URL: ${source.source}`);
+      
+      try {
+        const fetchStart = Date.now();
+        const response = await fetchWithTimeout(source.source);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const content = await response.text();
+        const fetchTime = Date.now() - fetchStart;
+        
+        if (!content || content.trim().length === 0) {
+          throw new Error(`Empty or invalid response from ${source.source}`);
+        }
+        
+        console.log(`[DEBUG] Successfully fetched ${source.name} in ${fetchTime}ms`);
+        console.log(`[DEBUG] Content length: ${content.length} characters`);
+        
+        // Process lines efficiently to avoid stack overflow
+        console.log(`[DEBUG] Processing lines from ${source.name}...`);
+        const lines: string[] = [];
+        const contentLines = content.split('\n');
+        
+        for (const line of contentLines) {
+          const trimmed = line.trim();
+          if (trimmed.length > 0) {
+            lines.push(trimmed);
+          }
+        }
+        
+        if (lines.length === 0) {
+          throw new Error(`No valid lines found in ${source.source}`);
+        }
+        
+        console.log(`[DEBUG] Processed ${lines.length} lines from ${source.name}`);
+        
+        // Add lines in smaller batches to avoid stack overflow
+        const batchSize = 10000;
+        for (let j = 0; j < lines.length; j += batchSize) {
+          const batch = lines.slice(j, j + batchSize);
+          allRules.push(...batch);
+        }
+        
+        console.log(`[DEBUG] Total rules collected so far: ${allRules.length}`);
+        
+      } catch (error) {
+        console.error(`[ERROR] CRITICAL: Failed to fetch ${source.name} from ${source.source}`);
+        console.error(`[ERROR] Error details:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Compilation failed at source ${i + 1}/${enabledSources.length}: ${source.name}. Error: ${errorMessage}`);
+      }
+    }
+
+    console.log(`[DEBUG] Finished fetching all sources. Total rules: ${allRules.length}`);
+
+    if (allRules.length === 0) {
+      throw new Error("CRITICAL: No rules were collected from any sources. Cannot proceed.");
+    }
+
+    // Apply transformations to the concatenated list
+    console.log('[DEBUG] Starting transformations...');
+    let processedRules = allRules;
+
+    // Remove comments
+    console.log('[DEBUG] Removing comments and empty lines...');
+    const beforeComments = processedRules.length;
+    processedRules = processedRules.filter((rule: string) => {
+      const trimmed = rule.trim();
+      return trimmed.length > 0 && 
+             !trimmed.startsWith('#') && 
+             !trimmed.startsWith('!') &&
+             !trimmed.startsWith('[');
+    });
+    console.log(`[DEBUG] Removed ${beforeComments - processedRules.length} comment/header lines`);
+
+    if (processedRules.length === 0) {
+      throw new Error("CRITICAL: No valid rules remaining after removing comments.");
+    }
+
+    // Deduplicate
+    console.log('[DEBUG] Deduplicating rules...');
+    const beforeDedup = processedRules.length;
+    processedRules = [...new Set(processedRules)];
+    console.log(`[DEBUG] Removed ${beforeDedup - processedRules.length} duplicate rules`);
+
+    // Basic validation
+    console.log('[DEBUG] Validating rules...');
+    const beforeValidation = processedRules.length;
+    processedRules = processedRules.filter((rule: string) => {
+      const trimmed = rule.trim();
+      return trimmed.includes('.') && !trimmed.includes(' ') && trimmed.length > 3;
+    });
+    console.log(`[DEBUG] Removed ${beforeValidation - processedRules.length} invalid rules`);
+
+    if (processedRules.length === 0) {
+      throw new Error("CRITICAL: No valid rules remaining after validation.");
+    }
+
+    if (processedRules.length < 100) {
+      throw new Error(`CRITICAL: Only ${processedRules.length} rules remaining, which seems too low.`);
+    }
+
+    console.log(`[DEBUG] Final rule count: ${processedRules.length}`);
 
     // Format the output with a header
+    console.log('[DEBUG] Creating output with header...');
     const timestamp = new Date();
     const header = [
       `! Title: ${config.name}`,
@@ -339,23 +340,46 @@ export async function compileBlocklist(): Promise<string> {
       config.homepage ? `! Homepage: ${config.homepage}` : '',
       config.license ? `! License: ${config.license}` : '',
       config.version ? `! Version: ${config.version}` : '',
-      '! Source count: ' + config.sources.length,
-      '! Rule count: ' + compiledRules.length,
-      '! Compilation time: ' + elapsed + 'ms',
+      '! Source count: ' + enabledSources.length,
+      '! Rule count: ' + processedRules.length,
+      '! Compilation time: ' + (Date.now() - startTime) + 'ms',
       '!'
     ].filter(Boolean).join('\n');
 
-    // Join the header and rules
-    const outputContent = `${header}\n${compiledRules.join('\n')}`;
+    const outputContent = `${header}\n${processedRules.join('\n')}`;
+
+    if (outputContent.length < 1000) {
+      throw new Error(`CRITICAL: Output too small (${outputContent.length} characters).`);
+    }
 
     // Write the output to file
-    secureWriteFile(OUTPUT_PATH, outputContent);
-    console.log(`Blocklist compiled successfully with ${compiledRules.length} rules`);
-    console.log(`Output written to ${OUTPUT_PATH}`);
+    console.log('[DEBUG] Writing output to file...');
+    try {
+      secureWriteFile(OUTPUT_PATH, outputContent);
+      
+      if (!fs.existsSync(OUTPUT_PATH)) {
+        throw new Error("Output file was not created successfully");
+      }
+      
+      const writtenSize = fs.statSync(OUTPUT_PATH).size;
+      if (writtenSize !== outputContent.length) {
+        throw new Error(`File size mismatch: expected ${outputContent.length}, got ${writtenSize}`);
+      }
+      
+    } catch (writeError) {
+      console.error('[ERROR] CRITICAL: Failed to write output file:', writeError);
+      const errorMessage = writeError instanceof Error ? writeError.message : String(writeError);
+      throw new Error(`Failed to write output file: ${errorMessage}`);
+    }
+    
+    const totalTime = Date.now() - startTime;
+    console.log(`[DEBUG] Compilation completed successfully in ${totalTime}ms`);
+    console.log(`[DEBUG] Output written to: ${OUTPUT_PATH}`);
+    console.log(`[DEBUG] Final blocklist size: ${outputContent.length} characters`);
 
     return outputContent;
   } catch (error) {
-    console.error("Failed to compile blocklist:", error);
+    console.error("[ERROR] Compilation failed:", error);
     throw error;
   }
 }
@@ -366,4 +390,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error("Compilation failed:", error);
     process.exit(1);
   });
-} 
+}

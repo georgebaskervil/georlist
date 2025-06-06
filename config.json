@@ -141,11 +141,6 @@
       "source": "https://raw.githubusercontent.com/iam-py-test/my_filters_001/main/Alternative%20list%20formats/antitypo_hosts.txt"
     },
     {
-      "name": "ShadowWhisperer Marketing Email",
-      "type": "hosts",
-      "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Marketing-Email"
-    },
-    {
       "name": "ShadowWhisperer Marketing",
       "type": "hosts",
       "source": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/master/Lists/Marketing"
@@ -179,11 +174,6 @@
       "name": "AlienVault Reputation",
       "type": "hosts",
       "source": "https://reputation.alienvault.com/reputation.generic"
-    },
-    {
-      "name": "Binary Defense Banlist",
-      "type": "hosts",
-      "source": "https://www.binarydefense.com/banlist.txt"
     },
     {
       "name": "CINS Score",
