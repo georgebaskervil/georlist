@@ -216,14 +216,9 @@
       "source": "https://pgl.yoyo.org/adservers/iplist.php?ipformat=&showintro=0&mimetype=plaintext"
     },
     {
-      "name": "NRD Part 1",
+      "name": "NRD",
       "type": "hosts",
-      "source": "https://raw.githubusercontent.com/xRuffKez/NRD/refs/heads/main/lists/30-day/adblock/nrd-30day_adblock_part1.txt"
-    },
-    {
-      "name": "NRD Part 2",
-      "type": "hosts",
-      "source": "https://raw.githubusercontent.com/xRuffKez/NRD/refs/heads/main/lists/30-day/adblock/nrd-30day_adblock_part2.txt"
+      "source": "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/nrd35-29.txt"
     },
     {
       "name": "DNS Rebinding",
