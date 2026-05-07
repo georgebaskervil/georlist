@@ -1,14 +1,13 @@
 # GeorList - AdGuard Hostlist Compiler
 
-GeorList is a Node.js application that compiles custom blocklists for AdGuard Home from multiple sources.
+GeorList is a GitHub Actions-powered blocklist compiler for AdGuard Home. It compiles custom blocklists from multiple sources and publishes the latest generated list as a GitHub Release asset.
 
 ## Features
 
 - Compiles blocklists from multiple sources defined in a configuration file
-- Automatically updates blocklists on a configurable schedule
-- Serves blocklists via HTTP for use with AdGuard Home
-- Implements security best practices including rate limiting and TLS validation
-- Supports Docker deployment
+- Automatically updates blocklists on a GitHub Actions schedule
+- Publishes the latest generated blocklist as a downloadable Release asset
+- Implements source validation and TLS-only source fetching
 
 ## Requirements
 
@@ -20,33 +19,24 @@ GeorList is a Node.js application that compiles custom blocklists for AdGuard Ho
 ### Local Installation
 
 1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/georlist.git
+
+   ```bash
+   git clone https://github.com/georgebaskervil/georlist.git
    cd georlist
    ```
 
 2. Install dependencies:
-   ```
+
+   ```bash
    npm install
    ```
 
 3. Configure your sources in `config.json` (see Configuration section below)
 
-4. Start the application:
-   ```
-   npm start
-   ```
+4. Generate the blocklist locally:
 
-### Docker Installation
-
-1. Build the Docker image:
-   ```
-   docker build -t georlist .
-   ```
-
-2. Run the container:
-   ```
-   docker run -p 3000:3000 -v $(pwd)/config.json:/app/config.json georlist
+   ```bash
+   npm run compile
    ```
 
 ## Configuration
@@ -57,9 +47,8 @@ The application is configured using a `config.json` file in the root directory. 
 {
   "name": "GeorList",
   "description": "A comprehensive blocklist for AdGuard Home compiled from multiple sources",
-  "homepage": "https://github.com/yourusername/georlist",
+  "homepage": "https://github.com/georgebaskervil/georlist",
   "version": "1.0.0",
-  "updateInterval": 86400,
   "sources": [
     {
       "name": "Example Filter List",
@@ -82,15 +71,18 @@ The application is configured using a `config.json` file in the root directory. 
 
 ## Usage
 
-Once running, the application will:
+The scheduled GitHub Action will:
 
 1. Compile the blocklists from the sources specified in `config.json`
-2. Start a web server to serve the compiled blocklist
-3. Set up a cron job to automatically update the blocklist based on the schedule
+2. Create or update the `blocklist` GitHub Release
+3. Upload the generated `adguard-blocklist.txt` as a release asset
+
+The update schedule is configured in `.github/workflows/update-blocklist.yml`.
 
 The compiled blocklist will be available at:
-```
-http://localhost:3000/blocklist.txt
+
+```text
+https://github.com/georgebaskervil/georlist/releases/download/blocklist/adguard-blocklist.txt
 ```
 
 You can configure AdGuard Home to use this URL as a blocklist source.
@@ -99,11 +91,8 @@ You can configure AdGuard Home to use this URL as a blocklist source.
 
 ### Scripts
 
-- `npm start` - Start the application
-- `npm run dev` - Start the application in development mode with auto-reload
-- `npm run server` - Start only the web server
-- `npm run compile` - Run only the blocklist compilation
-- `npm run cron` - Run only the scheduler
+- `npm start` - Run the one-shot blocklist update
+- `npm run compile` - Generate `adguard-blocklist.txt`
 - `npm run build` - Build the TypeScript files
 
 ## License
@@ -114,5 +103,3 @@ You can configure AdGuard Home to use this URL as a blocklist source.
 
 - Only HTTPS sources are allowed in the configuration
 - All file paths are validated to prevent path traversal
-- Rate limiting is implemented to prevent abuse
-- Security headers are set on all responses 
